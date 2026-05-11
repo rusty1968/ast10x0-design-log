@@ -48,7 +48,7 @@ Where should `unsafe` MMIO access live: scattered through controller/driver code
 
 ## 4. Evidence Summary
 
-Source pattern documented in [archive/PERIPHERAL_OWNERSHIP_ANALYSIS.md](../archive/PERIPHERAL_OWNERSHIP_ANALYSIS.md), sections 5.3 and 7.4. Concrete instances in the openprot repo (`smc-peripheral` branch):
+Pattern was originally surveyed in a peripheral-ownership planning doc (since removed from `archive/`; recoverable from git history). Concrete instances in the openprot repo (`smc-peripheral` branch):
 
 | Source | Supports | Confidence |
 |---|---|---|

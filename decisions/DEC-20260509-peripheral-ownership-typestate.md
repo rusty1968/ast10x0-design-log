@@ -52,7 +52,7 @@ Ginger Bill, *The Fatal Flaw of Ownership Semantics* (2020), argues that ownersh
 
 ## 4. Evidence Summary
 
-Source pattern documented in [archive/PERIPHERAL_OWNERSHIP_ANALYSIS.md](../archive/PERIPHERAL_OWNERSHIP_ANALYSIS.md), sections 1, 2, 4, 7.1, 7.3. Concrete instances in the openprot repo (`smc-peripheral` branch):
+Pattern was originally surveyed in a peripheral-ownership planning doc (since removed from `archive/`; recoverable from git history). Concrete instances in the openprot repo (`smc-peripheral` branch):
 
 | Source | Supports | Confidence |
 |---|---|---|

@@ -5,7 +5,7 @@
 - Owner: platform architecture
 - Date: 2026-05-09
 - Reviewers: firmware, platform
-- Related decisions: DEC-20260509-peripheral-ownership-typestate
+- Related decisions: DEC-20260509-peripher  al-ownership-typestate
 
 ## 1. Decision Question
 
@@ -48,7 +48,7 @@ How should higher-level device abstractions (e.g., `SpiNorFlash`) reference thei
 
 ## 4. Evidence Summary
 
-Source pattern documented in [archive/PERIPHERAL_OWNERSHIP_ANALYSIS.md](../archive/PERIPHERAL_OWNERSHIP_ANALYSIS.md), sections 2.4 and 7.2. Concrete instances in the openprot repo (`smc-peripheral` branch):
+Pattern was originally surveyed in a peripheral-ownership planning doc (since removed from `archive/`; recoverable from git history). Concrete instances in the openprot repo (`smc-peripheral` branch):
 
 | Source | Supports | Confidence |
 |---|---|---|

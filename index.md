@@ -11,6 +11,7 @@ Keep this file updated so reviewers can quickly understand open and settled deci
 | DEC-20260509-unsafe-consolidation-register-backend | Concentrate `unsafe` MMIO in register backends | platform architecture | accepted (retrospective) | 2026-11-09 | volatile-helper drift outside the backend perimeter |
 | DEC-20260509-lifetime-bounded-device-facade | Lifetime-bounded device facades over controllers | platform architecture | accepted (retrospective) | 2026-11-09 | board-storage + facade composition |
 | DEC-20260509-board-orchestration-layer | Board crate as hardware orchestration layer | platform architecture | accepted (retrospective; some sub-points aspirational) | 2026-11-09 | when does a 2nd backend need direct SCU access |
+| DEC-20260510-smc-topology-modeling | Model SMC controller topology as `SmcTopology` enum | platform architecture | accepted (retrospective for data model; controller gating aspirational) | 2026-11-10 | Phase 3 controller-side gating not yet wired |
 
 ## Accepted Decisions
 
@@ -21,6 +22,7 @@ Keep this file updated so reviewers can quickly understand open and settled deci
 | DEC-20260509-unsafe-consolidation-register-backend | Concentrate `unsafe` MMIO in register backends | 2026-05-09 | 2026-11-09 | pending |
 | DEC-20260509-lifetime-bounded-device-facade | Lifetime-bounded device facades over controllers | 2026-05-09 | 2026-11-09 | pending |
 | DEC-20260509-board-orchestration-layer | Board crate as hardware orchestration layer | 2026-05-09 | 2026-11-09 | pending |
+| DEC-20260510-smc-topology-modeling | Model SMC controller topology as `SmcTopology` enum | 2026-05-10 | 2026-11-10 | pending |
 
 ## Evidence Backlog
 

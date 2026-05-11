@@ -59,7 +59,7 @@ How should board-level hardware orchestration be structured for AST10x0, given t
 
 ## 4. Evidence Summary
 
-Source pattern proposed in [archive/BOARD_REFACTOR.md](../archive/BOARD_REFACTOR.md) and now realized in the openprot repo (`smc-peripheral` branch):
+Pattern was proposed in a board-refactor planning doc (since removed from `archive/`; recoverable from git history) and is now realized in the openprot repo (`smc-peripheral` branch):
 
 | Source | Supports | Confidence |
 |---|---|---|

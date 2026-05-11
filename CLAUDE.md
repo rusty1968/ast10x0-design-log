@@ -39,6 +39,8 @@ Date is when the record was created. Short title is kebab-case, 2-5 words, descr
 - Section 7 (Risks): focus on risks of the *current* pattern, not risks of *adopting* it.
 - Section 8 (Validation): point at existing tests and peripherals that already exercise the pattern.
 
+**Verify callers, not just definitions.** When claiming a component "has landed" / "is wired" / "is the source of truth" in a retrospective record, verify by following the call chain from a known production entry point — not just by confirming the type/function/module exists. A definition with zero callers is dead code, not landed work; if you find that, note it explicitly in the record (typically as an evidence row plus a §6 sub-point flagging the gap). The companion-repo equivalent of "did this actually wire through?" is a `grep` for callers of the public entry points.
+
 **Code references.** Reference files by path and concept, not line numbers — line numbers rot. Good: "see `peripherals/smc/controller.rs` — the `Smc<B, Mode>` type-state struct." Bad: "see line 45 of controller.rs."
 
 **One decision per record.** If you find yourself writing about three different things, that's three records. Split.
@@ -84,6 +86,7 @@ A common task: take a doc from `archive/` and produce one or more decision/evide
 3. Decide whether each claim is a *decision* (an architectural choice) or *evidence* (a factual claim about the code or system).
 4. Propose a list of records before writing them. Let the human confirm scope before drafting.
 5. Draft. Cross-link evidence to decisions. Update `index.md`.
-6. Recommend whether the source doc should be kept in `archive/`, deleted, or replaced by a shorter pointer.
+6. Before recommending deletion of the source doc, grep the new records for references to labels, sections, or numbering that only made sense inside the source (e.g., "Phase N", "Step N", "see §X of the original"). Replace each with the concrete content it stood for so the records read coherently after the source is gone.
+7. Recommend whether the source doc should be kept in `archive/`, deleted, or replaced by a shorter pointer.
 
 Most archive docs yield 2-4 durable records, not one record per doc. A 700-line analysis is rarely one decision.
