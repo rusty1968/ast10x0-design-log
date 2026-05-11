@@ -7,12 +7,20 @@ Keep this file updated so reviewers can quickly understand open and settled deci
 | Decision ID | Title | Owner | Status | Due | Top Unknown |
 |---|---|---|---|---|---|
 | DEC-20260503-spi-monitor-control-plane | Keep SPI monitor as control-plane service | platform architecture | accepted | 2026-08-03 | update-window token auth model |
+| DEC-20260509-peripheral-ownership-typestate | Peripheral ownership via type-state and exclusive ownership | platform architecture | accepted (retrospective) | 2026-11-09 | none — documents existing pattern |
+| DEC-20260509-unsafe-consolidation-register-backend | Concentrate `unsafe` MMIO in register backends | platform architecture | accepted (retrospective) | 2026-11-09 | volatile-helper drift outside the backend perimeter |
+| DEC-20260509-lifetime-bounded-device-facade | Lifetime-bounded device facades over controllers | platform architecture | accepted (retrospective) | 2026-11-09 | board-storage + facade composition |
+| DEC-20260509-board-orchestration-layer | Board crate as hardware orchestration layer | platform architecture | accepted (retrospective; some sub-points aspirational) | 2026-11-09 | when does a 2nd backend need direct SCU access |
 
 ## Accepted Decisions
 
 | Decision ID | Title | Accepted On | Revisit Date | Outcome |
 |---|---|---|---|---|
 | DEC-20260503-spi-monitor-control-plane | Keep SPI monitor as control-plane service | 2026-05-03 | 2026-08-03 | pending |
+| DEC-20260509-peripheral-ownership-typestate | Peripheral ownership via type-state and exclusive ownership | 2026-05-09 | 2026-11-09 | pending |
+| DEC-20260509-unsafe-consolidation-register-backend | Concentrate `unsafe` MMIO in register backends | 2026-05-09 | 2026-11-09 | pending |
+| DEC-20260509-lifetime-bounded-device-facade | Lifetime-bounded device facades over controllers | 2026-05-09 | 2026-11-09 | pending |
+| DEC-20260509-board-orchestration-layer | Board crate as hardware orchestration layer | 2026-05-09 | 2026-11-09 | pending |
 
 ## Evidence Backlog
 
