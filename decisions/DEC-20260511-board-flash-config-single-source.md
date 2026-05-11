@@ -1,7 +1,7 @@
 # Decision Record: Board flash config as single source of truth
 
 - Decision ID: DEC-20260511-board-flash-config-single-source
-- Status: proposed
+- Status: accepted
 - Owner: platform architecture
 - Date: 2026-05-11
 - Reviewers: firmware, platform
@@ -16,19 +16,19 @@ each hardcoding their own copies?
 
 ## 2. Context And Constraints
 
-- Technical context: flash configuration is currently duplicated and
-  inconsistent across three locations:
+- Technical context: flash device geometry (capacity, page/sector/block sizes,
+  clock rate) and controller topology (which chip-selects are populated, DMA
+  enabled) were declared redundantly — in the flash backend, in test fixtures,
+  and implicitly in QEMU model selection — with no single authoritative source.
+  The backend layer carried board-specific values, meaning changing a board
+  required editing a backend implementation file. The QEMU and production flash
+  devices have different capacities; conflating them at build time silently
+  produces wrong AHB window mappings on hardware.
 
-  | Location | What it declares | Problem |
-  |---|---|---|
-  | `target/ast10x0/backend/flash/src/lib.rs` — `const FLASH_CFG` | `capacity_mb: 1`, `spi_clock_mhz: 25`, page/sector/block sizes | Hardcoded; ignores `FlashConfig::winbond_*` named presets already in `types.rs`; the 1 MB value matches the QEMU `w25q80bl` model, not the production Winbond W25Q64 (8 MB) |
-  | `SmcConfig` constructed in `new_with_cfg()` | `cs1: None`, `dma_enabled: false` | Board topology hardcoded in backend logic; changing a board requires editing a backend implementation file |
-  | `system.json5` per test | Process RAM/flash region sizes, IRQ assignments | Declares no flash device geometry; cannot cross-validate against `FLASH_CFG`; a different document of the same board |
-
-  `DEC-20260509-board-orchestration-layer` already establishes that a board
-  crate is the source of truth for board-specific declarations.
-  `DEC-20260510-smc-topology-modeling` adds `SmcTopology` to `SmcConfig`.
-  Neither decision reached the flash config layer.
+  `DEC-20260509-board-orchestration-layer` establishes that a board crate is
+  the source of truth for board-specific declarations.
+  `DEC-20260510-smc-topology-modeling` adds topology modeling to the SMC
+  config. Neither decision reached the flash config layer.
 
 - Security constraints: none specific to this decision; flash geometry errors
   (wrong capacity) produce `InvalidCapacity` errors at runtime, not silent
@@ -102,13 +102,29 @@ each hardcoding their own copies?
 
 ## 4. Evidence Summary
 
-| Source | Supports | Confidence |
-|---|---|---|
-| `backend/flash/src/lib.rs` `const FLASH_CFG { capacity_mb: 1 }` | Config is hardcoded in backend, not from board | high |
-| `types.rs` `FlashConfig::winbond_w25q64()` (8 MB) | Named preset exists and is unused by the backend | high |
-| `target/ast10x0/BUILD.bazel` `bool_flag(name = "qemu")` + `config_setting(name = "qemu_enabled")` | QEMU flag infrastructure already exists for `select()` | high |
-| `tests/smc/target_*.rs` all construct `SmcConfig` directly | Test layer bypasses backend; board crate change does not affect tests | high |
-| `DEC-20260509-board-orchestration-layer` | Board crate is the declared source of truth for board-specific values | high |
+- **Backend should not own board identity.** A backend is a transport and
+  protocol adapter; it should receive configuration, not define it. When a
+  backend hardcodes device geometry, adding a board variant requires editing
+  an implementation file rather than a configuration file — inverting the
+  dependency.
+
+- **QEMU and production flash devices differ in capacity.** Conflating them
+  at the wrong layer produces incorrect hardware register programming. The
+  build system already has an explicit QEMU flag; the board crate is the
+  natural place to consume it.
+
+- **Named flash presets already exist in the peripheral crate.** The typed
+  preset infrastructure (`winbond_w25q64()`, etc.) was unused by anything
+  above the peripheral layer. Routing through a board crate lets that layer
+  propagate automatically to all consumers.
+
+- **Test fixtures construct SMC config directly and are unaffected.** The
+  board crate boundary does not touch the test layer; tests can continue to
+  construct configurations inline without going through the board crate.
+
+- **`DEC-20260509-board-orchestration-layer`** declares the board crate as
+  the source of truth for board-specific values. This decision closes the gap
+  at the flash config layer.
 
 ## 5. Decision
 
@@ -119,100 +135,7 @@ The architectural gap (backend owns board identity) is real and will only grow
 as board variants are added. Option B patches the symptom without closing the
 gap. Option C is disproportionately complex.
 
-## 6. Implementation Plan
-
-### Step 1 — Create `target/ast10x0/board/`
-
-```
-target/ast10x0/board/
-    BUILD.bazel
-    src/
-        lib.rs      ← production board constants
-        qemu.rs     ← QEMU model overrides
-```
-
-`src/lib.rs` (production):
-```rust
-use ast10x0_peripherals::smc::{FlashConfig, SmcConfig, SmcController};
-
-pub const FMC_CS0:  FlashConfig = FlashConfig::winbond_w25q64();  // 8 MB
-pub const SPI1_CS0: FlashConfig = FlashConfig::winbond_w25q64();
-pub const SPI2_CS0: FlashConfig = FlashConfig::winbond_w25q64();
-
-pub const FMC_CONFIG: SmcConfig = SmcConfig {
-    controller_id: SmcController::Fmc,
-    cs0: Some(FMC_CS0),
-    cs1: None,
-    dma_enabled: false,
-    enable_interrupts: false,
-};
-```
-
-`src/qemu.rs` (QEMU `w25q80bl` model — 1 MB):
-```rust
-use ast10x0_peripherals::smc::{FlashConfig, SmcConfig, SmcController};
-
-pub const FMC_CS0:  FlashConfig = FlashConfig {
-    capacity_mb: 1,
-    page_size: 256,
-    sector_size: 4096,
-    block_size: 65536,
-    spi_clock_mhz: 25,
-};
-pub const SPI1_CS0: FlashConfig = FMC_CS0;
-pub const SPI2_CS0: FlashConfig = FMC_CS0;
-
-pub const FMC_CONFIG: SmcConfig = SmcConfig {
-    controller_id: SmcController::Fmc,
-    cs0: Some(FMC_CS0),
-    cs1: None,
-    dma_enabled: false,
-    enable_interrupts: false,
-};
-```
-
-`BUILD.bazel`:
-```python
-rust_library(
-    name = "board",
-    srcs = select({
-        "//target/ast10x0:qemu_enabled": ["src/qemu.rs"],
-        "//conditions:default":           ["src/lib.rs"],
-    }),
-    crate_name = "board",
-    edition = "2024",
-    target_compatible_with = TARGET_COMPATIBLE_WITH,
-    visibility = ["//target/ast10x0:__subpackages__"],
-    deps = ["//target/ast10x0/peripherals"],
-)
-```
-
-### Step 2 — Update `backend/flash/src/lib.rs`
-
-Remove `const FLASH_CFG`. Replace with:
-```rust
-use board::{FMC_CS0, FMC_CONFIG, SPI1_CS0, SPI2_CS0};
-```
-
-`new_for_controller()` uses `FMC_CONFIG` / `SPI1_CS0` / `SPI2_CS0` directly.
-`new_with_cfg()` is kept as the test/override path.
-
-### Step 3 — Update `backend/flash/BUILD.bazel`
-
-Add `//target/ast10x0/board` to `deps`.
-
-### Step 4 — Verify no change to server binaries or tests
-
-`server_main.rs`, `server_main_spi1.rs`, `server_main_spi2.rs` call
-`Backend::new_fmc()` / `new_spi1()` / `new_spi2()` — unchanged. Tests that
-construct `SmcConfig` directly — unchanged. Run full baseline after the change:
-
-```
-bazelisk test //target/ast10x0/peripherals/... && \
-bazelisk test --config=virt_ast10x0 --test_tag_filters= //target/ast10x0/...
-```
-
-## 7. Consequences And Follow-ons
+## 6. Consequences And Follow-ons
 
 - Adding a board variant (e.g., a 32 MB W25Q256 board) becomes an edit to
   `board/src/lib.rs` only; the backend and server binaries are untouched.
