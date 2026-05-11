@@ -46,13 +46,12 @@ callers to manage two separate controller instances or perform unsafe indexing?
 
 - Non-goals:
   - More than two chip-selects per controller. The AST10x0 hardware supports
-    at most CS0 and CS1 per controller. The current design does not scale past
-    2 CS: `SmcConfig` uses named fields (`cs0`, `cs1`) rather than an array,
-    the internal register-restore arrays are fixed at size 2, and `ChipSelect`
-    has exactly 2 variants. If a future SoC exposed 3+ CS lines, the right
-    generalization would be `cs_configs: [Option<FlashConfig>; MAX_CS]` in
-    `SmcConfig` and a validated newtype `ChipSelect(u8)` with a per-controller
-    bounds check — effectively Option C from §3 but with a thin safety wrapper.
+    at most CS0 and CS1 per controller, so the design is intentionally
+    constrained to exactly two CS slots. It does not generalize to N CS:
+    the config and internal state are structured for exactly 2, and `ChipSelect`
+    is a closed 2-variant enum. If a future SoC exposed 3+ CS lines, the right
+    generalization would be a fixed-size config array and a validated newtype
+    index — effectively Option C from §3 but with a thin safety wrapper.
     That redesign is out of scope here.
   - Runtime hot-plug of a second flash device after `init()`.
   - Separate DMA configuration per CS. DMA is controller-scoped in this
@@ -69,9 +68,8 @@ callers to manage two separate controller instances or perform unsafe indexing?
   The controller validates at call time: if `Cs1` is requested and
   `config.cs1.is_none()`, it returns `SmcError::InvalidChipSelect`.
   Segment registers are programmed for each populated CS at `init()`;
-  `flash_window_base[cs as usize]` stores the per-CS AHB window address.
-  `normal_read_ctrl[cs as usize]` stores the per-CS control word restored
-  after every user-mode transaction.
+  per-CS AHB window addresses and normal-read control words are stored
+  internally and restored unconditionally after every user-mode transaction.
 - Benefits: a single controller instance manages both CSes; no ownership
   split; per-CS validation is a runtime check tied directly to the config;
   pattern is identical to aspeed-rust's array indexing but typed; the
@@ -93,10 +91,9 @@ callers to manage two separate controller instances or perform unsafe indexing?
 - Benefits: no runtime CS argument; a CS0-only caller cannot accidentally
   address CS1.
 - Costs: two instances sharing the same MMIO base is unsound — both would
-  write to overlapping registers (CE0CTRL, CE1CTRL, SEG0, SEG1) independently,
-  violating the single-owner requirement from
-  DEC-20260509-peripheral-ownership-typestate. Initialization order between
-  the two instances is undefined.
+  write to overlapping per-CS registers independently, violating the
+  single-owner requirement from DEC-20260509-peripheral-ownership-typestate.
+  Initialization order between the two instances is undefined.
 - Main risks: register aliasing; no way to safely enforce that only one
   instance holds the MMIO at a time without global locking.
 - Reversibility: N/A — rejected.
@@ -137,8 +134,8 @@ callers to manage two separate controller instances or perform unsafe indexing?
   each have separate segment registers, but both are within the same MMIO
   block. The controller programs them both at `init()` and restores per-CS
   control words after each user-mode transaction. This is naturally expressed
-  as indexed arrays (`normal_read_ctrl[2]`, `flash_window_base[2]`) inside a
-  single controller instance.
+  as per-CS state held inside a single controller instance — not split across
+  two independent owners.
 
 - **Capacity validation must be per-CS, not total**: the `SpiNorFlash` device
   facade's geometry parameter is validated against the *selected* CS's
@@ -173,9 +170,9 @@ config validation, and keeps the call surface auditable.
 - All transport and facade APIs carry an explicit `ChipSelect` argument. In
   the common single-CS case this is `ChipSelect::Cs0`, which is cheap and
   clear.
-- Adding a CS1 flash device to a board is a one-field change in the board
-  crate (`cs1: Some(FlashConfig::winbond_w25q256())`); no controller or
-  backend code changes.
+- Adding a CS1 flash device to a board is a single change in the board
+  crate (populate `cs1` with the appropriate `FlashConfig`); no controller
+  or backend code changes.
 - `SmcError::InvalidChipSelect` provides a clear runtime error if a caller
   requests CS1 on a CS0-only controller. A future decision could harden this
   to a compile-time error by encoding CS availability as a type parameter:
